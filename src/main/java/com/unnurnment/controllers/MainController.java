@@ -2,6 +2,7 @@ package com.unnurnment.controllers;
 
 import com.unnurnment.model.User;
 import com.unnurnment.repository.UserRepo;
+import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,40 +19,56 @@ public class MainController {
 
     @PostMapping(value = "/users")
     public ResponseEntity<?> create(@RequestBody User user){
-        userRepo.save(user);
-        return new ResponseEntity<User>(HttpStatus.OK);
+       if (user.getUsername().isEmpty() && user.getEmail().isEmpty()){
+           return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+       }else {
+           userRepo.save(user);
+           return new ResponseEntity<User>(HttpStatus.OK);
+       }
     }
 
     @GetMapping(value = "/users")
     public ResponseEntity<Iterable<User>> find(){
         final Iterable<User> users = userRepo.findAll();
-        return new ResponseEntity<>(users, HttpStatus.OK);
+        if (users.iterator().hasNext()){
+            return new ResponseEntity<>(users, HttpStatus.OK);
+        }else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     @PutMapping(value = "/users/{id}")
     public ResponseEntity<?> update(@PathVariable(name = "id") long id, @RequestBody User user){
         Optional<User> userOptional = userRepo.findById(id);
-        user.setId(id);
-        userRepo.save(user);
 
         if (userOptional.isEmpty()){
-            return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }else {
-            return new ResponseEntity<User>(HttpStatus.OK);
+            user.setId(id);
+            userRepo.save(user);
+            return new ResponseEntity<>(HttpStatus.OK);
         }
     }
 
     @DeleteMapping(value = "/users/{id}")
     public ResponseEntity<?> delete(@PathVariable(name = "id") long id){
-        userRepo.deleteById(id);
-        return new ResponseEntity<User>(HttpStatus.OK);
+        final Optional<User> users = userRepo.findById(id);
+        if (users.isEmpty()){
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }else {
+            userRepo.deleteById(id);
+            return new ResponseEntity<User>(HttpStatus.OK);
+        }
     }
 
     @GetMapping(value = "/users/{id}")
-    public ResponseEntity<?> readById (@PathVariable(name = "id") long id){
-        final User user = userRepo.findById(id).orElseThrow();
-        return user != null
-                ? new ResponseEntity<>(user,HttpStatus.OK)
-                : new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<?> readById (@PathVariable(name = "id") long id) throws NotFoundException {
+        final Optional<User> userOptional = userRepo.findById(id);
+
+        if (userOptional.isEmpty()){
+            return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+        }else {
+            return new ResponseEntity<>(userOptional,HttpStatus.OK);
+        }
     }
 }
