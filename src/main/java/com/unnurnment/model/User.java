@@ -1,9 +1,9 @@
 package com.unnurnment.model;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
 @Entity
 public class User {
@@ -14,6 +14,17 @@ public class User {
     private String username;
     private String email;
     private boolean Validation;
+
+    @OneToMany(mappedBy = "user",cascade = CascadeType.REMOVE, fetch = FetchType.EAGER)
+    Set<Massage> massages = new HashSet<>();
+
+    public Set<Massage> getMassages() {
+        return massages;
+    }
+
+    public void setMassages(Set<Massage> massages) {
+        this.massages = massages;
+    }
 
     public Long getId() {
         return id;
