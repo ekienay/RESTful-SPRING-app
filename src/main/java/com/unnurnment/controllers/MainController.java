@@ -4,8 +4,8 @@ import com.unnurnment.model.Massage;
 import com.unnurnment.model.User;
 import com.unnurnment.repository.MassageRepo;
 import com.unnurnment.repository.UserRepo;
-import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.EnableMBeanExport;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -87,15 +87,18 @@ public class MainController {
     public ResponseEntity<?> updateMassage(@PathVariable(name = "massage_id") long massage_id, @PathVariable(name = "id") long user_id, @RequestBody Massage massage){
         Optional<Massage> massageOptional = massageRepo.findById(massage_id);
         Optional<User> userOptional = userRepo.findById(user_id);
-
-        if (massageOptional.isEmpty()){
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }else {
-            massage.setId(massage_id);
-            massage.setUser(userOptional.get());
-            massageRepo.save(massage);
-            return new ResponseEntity<>(HttpStatus.OK);
+        if (massageOptional.isPresent() && userOptional.isPresent()){
+            User user = userOptional.get();
+            for (Massage massage1 : user.getMassages()){
+                if (massage1.getId().equals(massage_id)){
+                    massage.setId(massage_id);
+                    massage.setUser(user);
+                    massageRepo.save(massage);
+                    return new ResponseEntity<>(HttpStatus.OK);
+                }
+            }
         }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @DeleteMapping(value = "/users/{id}")
@@ -113,16 +116,35 @@ public class MainController {
     public ResponseEntity<?> deleteMassage(@PathVariable(name = "id") long user_id, @PathVariable(name = "massage_id") long massage_id) {
         Optional<User> userOptional = userRepo.findById(user_id);
         Optional<Massage> massageOptional = massageRepo.findById(massage_id);
-            if (userOptional.isPresent() && massageOptional.isPresent()){
-                Massage massage = massageOptional.get();
-                massageRepo.delete(massage);
-                return new ResponseEntity<Massage>(HttpStatus.OK);
+        if (userOptional.isPresent() && massageOptional.isPresent()){
+            User user = userOptional.get();
+            for (Massage massage : user.getMassages()){
+                if (massage.getId().equals(massage_id)){
+                    massageRepo.delete(massage);
+                    return new ResponseEntity<Massage>(HttpStatus.OK);
+                }
             }
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @GetMapping(value = "/user/{id}/massages/{massage_id}")
+    public ResponseEntity<?> readMassageById(@PathVariable(name = "id") long user_id, @PathVariable(name = "massage_id") long massage_id){
+        Optional<User> userOptional = userRepo.findById(user_id);
+        Optional<Massage> massageOptional = massageRepo.findById(massage_id);
+        if (userOptional.isPresent() && massageOptional.isPresent()){
+            User user = userOptional.get();
+            for (Massage massage : user.getMassages()){
+                if (massage.getId().equals(massage_id)){
+                    return new ResponseEntity<>(massage,HttpStatus.OK);
+                }
+            }
+        }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @GetMapping(value = "/users/{id}")
-    public ResponseEntity<?> readById (@PathVariable(name = "id") long id) throws NotFoundException {
+    public ResponseEntity<?> readById (@PathVariable(name = "id") long id){
         final Optional<User> userOptional = userRepo.findById(id);
 
         if (userOptional.isEmpty()){
